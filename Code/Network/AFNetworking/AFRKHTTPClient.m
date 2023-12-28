@@ -479,7 +479,16 @@ static void AFRKNetworkReachabilityReleaseCallback(const void *info) {
 
     if (parameters) {
         if ([method isEqualToString:@"GET"] || [method isEqualToString:@"HEAD"] || [method isEqualToString:@"DELETE"]) {
-            url = [NSURL URLWithString:[[url absoluteString] stringByAppendingFormat:[path rangeOfString:@"?"].location == NSNotFound ? @"?%@" : @"&%@", AFRKQueryStringFromParametersWithEncoding(parameters, self.stringEncoding)]];
+            NSString* format = [path rangeOfString:@"?"].location == NSNotFound ? @"?%@" : @"&%@";
+            NSString* queryString = AFRKQueryStringFromParametersWithEncoding(parameters, self.stringEncoding);
+            NSString* stringUrl = [[url absoluteString] stringByAppendingFormat: format, queryString];
+            if (@available(iOS 17, *)) {
+                url = [NSURL URLWithString:stringUrl encodingInvalidCharacters: true];
+                stringUrl = [[url absoluteString] stringByReplacingOccurrencesOfString:@"%25" withString: @"%"];
+                url = [NSURL URLWithString:stringUrl encodingInvalidCharacters: true];
+            } else {
+                url = [NSURL URLWithString:stringUrl];
+            }
             [request setURL:url];
         } else {
             NSString *charset = (__bridge NSString *)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(self.stringEncoding));
